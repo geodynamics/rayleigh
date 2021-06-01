@@ -37,14 +37,14 @@ Module Checkpointing
     ! Uses MPI-IO to split writing of files amongst rank zero processes from each row
     Implicit None
     Type(SphericalBuffer) :: chktmp, chktmp2, bctmp
-    Integer, private :: numfields = 4 ! 6 for MHD
+    Integer, private :: numfields = 5 ! 7 for MHD
     Integer, private :: check_err_off = 100  ! Checkpoint errors report in range 100-200.
     Integer, private :: checkpoint_version = 2
     Integer,private :: checkpoint_tag = 425, read_var(1:12)
     Character*3 :: wchar = 'W', pchar = 'P', tchar = 'T', zchar = 'Z', achar = 'A', cchar = 'C'
     Character*120 :: checkpoint_prefix ='nothing'
     Character*6 :: auto_fmt = '(i2.2)'  ! Format code for quicksaves
-    Character*3 :: checkpoint_suffix(12)
+    Character*3 :: checkpoint_suffix(14)
     Integer :: checkpoint_iter = 0
     Real*8  :: checkpoint_dt, checkpoint_newdt
     Real*8  :: checkpoint_time
@@ -91,12 +91,12 @@ Contains
         Endif
 
         if (magnetism) Then
-            numfields = 6
-            checkpoint_suffix(1:12) = &
-                (/ 'W  ', 'P  ', 'T  ', 'Z  ', 'C  ', 'A  ', 'WAB', 'PAB', 'TAB', 'ZAB', 'CAB', 'AAB' /)
+            numfields = 6 +1
+            checkpoint_suffix(1:14) = &
+                (/ 'W  ', 'P  ', 'T  ', 'Z  ', 'X  ', 'C  ', 'A  ', 'WAB', 'PAB', 'TAB', 'ZAB', 'XAB', 'CAB', 'AAB' /)
         Else
-            checkpoint_suffix(1:8) = &
-                (/ 'W  ', 'P  ', 'T  ', 'Z  ', 'WAB', 'PAB', 'TAB', 'ZAB' /)
+            checkpoint_suffix(1:10) = &
+                (/ 'W  ', 'P  ', 'T  ', 'Z  ', 'X  ', 'WAB', 'PAB', 'TAB', 'ZAB', 'XAB' /)
         Endif
         nfs(:) = numfields*2
         Call chktmp%init(field_count = nfs, config = 'p1a') ! Persistent throughout run

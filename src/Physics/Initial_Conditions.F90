@@ -59,19 +59,20 @@ Module Initial_Conditions
     Real*8  :: tvar_scale = 1.0d0
     Real*8  :: pressure_scale = 1.0d0
     Real*8  :: mdelta = 0.0d0  ! mantle convection benchmark delta
-    Character*120 :: t_init_file = '__nothing__'
-    Character*120 :: w_init_file = '__nothing__'
-    Character*120 :: p_init_file = '__nothing__'
-    Character*120 :: z_init_file = '__nothing__'
-    Character*120 :: c_init_file = '__nothing__'
-    Character*120 :: a_init_file = '__nothing__'
+    Character*120 :: t_init_file   = '__nothing__'
+    Character*120 :: w_init_file   = '__nothing__'
+    Character*120 :: p_init_file   = '__nothing__'
+    Character*120 :: z_init_file   = '__nothing__'
+    Character*120 :: chi_init_file = '__nothing__'
+    Character*120 :: c_init_file   = '__nothing__'
+    Character*120 :: a_init_file   = '__nothing__'
 
     Namelist /Initial_Conditions_Namelist/ init_type, temp_amp, temp_w, restart_iter, &
             & magnetic_init_type,alt_check, mag_amp, conductive_profile, rescale_velocity, &
             & rescale_bfield, velocity_scale, bfield_scale, rescale_tvar, &
             & rescale_pressure, tvar_scale, pressure_scale, mdelta, &
             & t_init_file, w_init_file, p_init_file, z_init_file, &
-            & c_init_file, a_init_file
+            & chi_init_file, c_init_file, a_init_file
 Contains
 
     Subroutine Initialize_Fields()
@@ -238,9 +239,9 @@ Contains
 
         ! This routine also reads in the relevant magnetic quantities
         ! They are overwritten later by whatever the magnetic initialization does
-        fcount(:,:) = 4
+        fcount(:,:) = 5
         If (magnetism) Then
-            fcount(:,:) = 6
+            fcount(:,:) = 7
         Endif
 
         Call tempfield%init(field_count = fcount, config = 'p1a')
@@ -560,6 +561,11 @@ Contains
         if (trim(z_init_file) .ne. '__nothing__') then
             call read_input(z_init_file, 1, tempfield)
             call set_rhs(zeq, tempfield%p1b(:,:,:,1))
+        end if
+
+        if (trim(chi_init_file) .ne. '__nothing__') then
+            call read_input(chi_init_file, 1, tempfield)
+            call set_rhs(chieq, tempfield%p1b(:,:,:,1))
         end if
 
         call tempfield%deconstruct('p1b')

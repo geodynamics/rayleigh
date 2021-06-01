@@ -44,7 +44,7 @@ Contains
         ! We aren't quite in physical space yet.
         ! 1st, get the phi derivatives
         Call StopWatch(dphi_time)%startclock()
-        Call Phi_Derivatives()
+        Call Phi_Derivatives()   ! Don't forget to get variables PHI derivative -- PASSIVE
         If (output_iteration) Then
             Call Diagnostics_Copy_and_Derivs()
         Endif
@@ -69,6 +69,7 @@ Contains
         Call sintheta_div(dvrdt)
         Call sintheta_div(dvpdp)
         Call sintheta_div(dvtdp)
+        Call sintheta_div(dchidt)  ! PASSIVE - dchidt initially contains sin(theta) dsdtheta -- divide by sintheta
 
 
 
@@ -115,6 +116,10 @@ Contains
 
         Call Temperature_Advection()
         Call Volumetric_Heating()
+
+        Call chi_Advection()   ! PASSIVE
+        Call chi_Source_function()
+
         If (viscous_heating) Call Compute_Viscous_Heating()
 
 
@@ -172,6 +177,23 @@ Contains
         !$OMP END PARALLEL DO
     End Subroutine Compute_dvphi_by_dtheta
 
+    Subroutine chi_Advection()
+        Integer :: t,r,k
+        !$OMP PARALLEL DO PRIVATE(t,r,k)
+        Do t = my_theta%min, my_theta%max
+            Do r = my_r%min, my_r%max
+                Do k =1, n_phi
+                wsp%p3b(k,r,t,chivar) = -wsp%p3a(k,r,t,vr)*wsp%p3a(k,r,t,dchidr)     &
+                                     - one_over_r(r)*(                           &
+                                       wsp%p3a(k,r,t,dchidt)*wsp%p3a(k,r,t,vtheta) &
+                                     + wsp%p3a(k,r,t,vphi)*wsp%p3a(k,r,t,dchidp)*csctheta(t) )
+
+                Enddo
+            Enddo
+        Enddo
+        !$OMP END PARALLEL DO
+    End Subroutine chi_Advection
+
     Subroutine Temperature_Advection()
         Integer :: t,r,k
         !$OMP PARALLEL DO PRIVATE(t,r,k)
@@ -206,6 +228,22 @@ Contains
             !$OMP END PARALLEL DO
         Endif
     End Subroutine Volumetric_Heating
+
+    Subroutine chi_Source_Function()
+        Implicit None
+        Integer :: t,r,k
+
+        !$OMP PARALLEL DO PRIVATE(t,r,k)
+        Do t = my_theta%min, my_theta%max
+            Do r = my_r%min, my_r%max
+                Do k =1, n_phi
+                    wsp%p3b(k,r,t,chivar) = wsp%p3b(k,r,t,chivar)+0.0d0  ! This is where you would put a source function
+                Enddo
+            Enddo
+        Enddo
+        !$OMP END PARALLEL DO
+
+    End Subroutine chi_Source_Function
 
     Subroutine Compute_Viscous_Heating()
         Implicit None
@@ -592,6 +630,7 @@ Contains
         Call d_by_dphi(wsp%p3a,vtheta,dvtdp)
         Call d_by_dphi(wsp%p3a,vphi,dvpdp)
         Call d_by_dphi(wsp%p3a,tvar,dtdp)
+        Call d_by_dphi(wsp%p3a,chivar,dchidp)   ! PASSIVE
     End Subroutine Phi_Derivatives
     Subroutine sintheta_div(ind)
         ! Divide by sintheta
